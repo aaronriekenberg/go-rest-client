@@ -16,7 +16,7 @@ type SampleResponse struct {
 	Time  time.Time `json:"time"`
 }
 
-func processResponse(resp* http.Response) (err error) {
+func processResponse(resp *http.Response) (err error) {
 	defer resp.Body.Close()
 
 	var sampleResponse SampleResponse
