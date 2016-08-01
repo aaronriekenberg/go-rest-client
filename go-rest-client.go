@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"sync"
 	"time"
 )
 
@@ -16,29 +18,56 @@ type SampleResponse struct {
 	Time  time.Time `json:"time"`
 }
 
-func processResponse(resp *http.Response) (err error) {
+func processResponse(resp *http.Response) {
 	defer resp.Body.Close()
 
 	var sampleResponse SampleResponse
-	err = json.NewDecoder(resp.Body).Decode(&sampleResponse)
-	if err == nil {
+	err := json.NewDecoder(resp.Body).Decode(&sampleResponse)
+	if err != nil {
+		logger.Printf("json err %v", err)
+	} else {
 		logger.Printf("sampleResponse %+v", sampleResponse)
 	}
-	return
 }
 
-func callURL(url string) (err error) {
-	logger.Printf("calling %v", url)
-	resp, err := http.Get(url)
-	if err == nil {
-		err = processResponse(resp)
+type urlRequest struct {
+	url       string
+	waitGroup *sync.WaitGroup
+}
+
+func processRequest(taskID int, request *urlRequest) {
+	defer request.waitGroup.Done()
+
+	logger.Printf("%v calling %v", taskID, request.url)
+	resp, err := http.Get(request.url)
+	if err != nil {
+		logger.Printf("http get err %v", err)
+	} else {
+		processResponse(resp)
 	}
-	return
+}
+
+func urlCallTask(taskID int, urlRequestChannel chan *urlRequest) {
+	for {
+		request := <-urlRequestChannel
+		processRequest(taskID, request)
+	}
 }
 
 func main() {
-	url := "http://localhost:8080/test/v1/1234/sub/2345"
-	if err := callURL(url); err != nil {
-		logger.Printf("err %v", err)
+	urlRequestChannel := make(chan *urlRequest)
+	var waitGroup sync.WaitGroup
+	for i := 0; i < 10; i += 1 {
+		go urlCallTask(i, urlRequestChannel)
 	}
+	for i := 0; i < 1000; i += 1 {
+		url := "http://localhost:8080/test/v1/1234/sub/" + strconv.Itoa(i)
+		request := urlRequest{
+			url:       url,
+			waitGroup: &waitGroup,
+		}
+		waitGroup.Add(1)
+		urlRequestChannel <- &request
+	}
+	waitGroup.Wait()
 }
