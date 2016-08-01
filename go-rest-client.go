@@ -48,8 +48,7 @@ func processRequest(taskID int, request *urlRequest) {
 }
 
 func urlCallTask(taskID int, urlRequestChannel chan *urlRequest) {
-	for {
-		request := <-urlRequestChannel
+	for request := range urlRequestChannel {
 		processRequest(taskID, request)
 	}
 }
