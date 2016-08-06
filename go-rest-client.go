@@ -63,10 +63,11 @@ func main() {
 	log.Printf("numCalls %v", *numCalls)
 
 	urlRequestChannel := make(chan *urlRequest)
-	var waitGroup sync.WaitGroup
 	for i := 0; i < *numCallTasks; i++ {
 		go urlCallTask(i, urlRequestChannel)
 	}
+
+	var waitGroup sync.WaitGroup
 	for i := 0; i < *numCalls; i++ {
 		url := "http://localhost:8080/test/v1/1234/sub/" + strconv.Itoa(i)
 		request := urlRequest{
