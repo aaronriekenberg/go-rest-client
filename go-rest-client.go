@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -54,12 +55,19 @@ func urlCallTask(taskID int, urlRequestChannel chan *urlRequest) {
 }
 
 func main() {
+	numCallTasks := flag.Int("numcalltasks", 10, "number of call tasks")
+	numCalls := flag.Int("numcalls", 1, "number of calls to make")
+	flag.Parse()
+
+	log.Printf("numCallTasks %v", *numCallTasks)
+	log.Printf("numCalls %v", *numCalls)
+
 	urlRequestChannel := make(chan *urlRequest)
 	var waitGroup sync.WaitGroup
-	for i := 0; i < 10; i += 1 {
+	for i := 0; i < *numCallTasks; i++ {
 		go urlCallTask(i, urlRequestChannel)
 	}
-	for i := 0; i < 1000; i += 1 {
+	for i := 0; i < *numCalls; i++ {
 		url := "http://localhost:8080/test/v1/1234/sub/" + strconv.Itoa(i)
 		request := urlRequest{
 			url:       url,
